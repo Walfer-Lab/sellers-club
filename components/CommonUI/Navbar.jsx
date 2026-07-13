@@ -105,7 +105,7 @@ export default function Navbar() {
                 MOBILE NAVBAR (TOP)
             ========================================= */}
             <div className="fixed z-50 flex flex-row justify-between items-center px-5 py-4 top-0 left-0 w-full lg:hidden bg-white/80 backdrop-blur-md border-b border-gray-100">
-                <p className="text-gray-900 text-xl font-bold font-cabinet tracking-tight">
+                <p className="text-violet-800/80 text-xl font-bold font-cabinet tracking-tight">
                     Seller's Club
                 </p>
                 <div className="flex flex-row gap-5 items-center">
