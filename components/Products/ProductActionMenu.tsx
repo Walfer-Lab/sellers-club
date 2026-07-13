@@ -116,12 +116,12 @@ export default function ProductActionMenu({ productId }: { productId: string }) 
           <div
             ref={menuRef}
             style={{ position: 'fixed', top: position.top, left: position.left, width: MENU_WIDTH }}
-            className="w-fit rounded-xl bg-zinc-200 shadow-lg z-50 overflow-hidden border border-zinc-400"
+            className="w-fit rounded-xl bg-gray-100 shadow-lg z-50 overflow-hidden border border-gray-200"
           >
             <div>
               <Link
                 href={`/dashboard/products/edit/${productId}`}
-                className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 font-general font-medium hover:bg-zinc-300 transition-colors"
+                className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 font-general font-medium hover:bg-gray-200 transition-colors"
                 onClick={() => setIsOpen(false)}
               >
                 <HugeiconsIcon icon={Edit01Icon} size={16} strokeWidth={2}/>

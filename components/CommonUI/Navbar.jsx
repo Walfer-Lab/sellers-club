@@ -22,7 +22,7 @@ const NavLinksTop = [
 ];
 
 const MobileNavTop = [
-    { label: "Account",      path: "/dashboard/account",      navIcon: UserCircleIcon },
+    { label: "Account",      path: "/dashboard/settings",      navIcon: UserCircleIcon },
 ];
 
 const MobileNavBottom = [
@@ -41,15 +41,15 @@ export default function Navbar() {
             {/* =========================================
                 DESKTOP NAVBAR
             ========================================= */}
-            <aside className="fixed left-0 top-0 z-50 h-screen w-64 hidden lg:flex flex-col justify-between bg-white border-r border-gray-100 py-6 px-4">
+            <aside className="fixed left-0 top-0 z-50 h-screen w-64 hidden lg:flex flex-col justify-between bg-white border-r-2 border-gray-200 py-6 px-4 shadow-md">
                 
                 {/* Top Section */}
                 <div className="w-full flex flex-col">
                     
                     {/* Logo */}
                     <div className="px-3 mb-8">
-                        <p className="text-2xl text-gray-900 font-cabinet font-semibold tracking-tight">
-                            Seller's Club
+                        <p className="text-2xl text-violet-800/80 font-cabinet font-black tracking-tight">
+                            Sellers Club
                         </p>
                     </div>
 
@@ -77,7 +77,7 @@ export default function Navbar() {
                                         <HugeiconsIcon 
                                             icon={navIcon} 
                                             size={20} 
-                                            strokeWidth={isActive ? 2 : 1.5} 
+                                            strokeWidth={isActive ? 2 : 1.5}
                                         />
                                     </div>
                                     {label}
@@ -88,7 +88,7 @@ export default function Navbar() {
                 </div>
 
                 {/* Bottom Section / Account Navigation */}
-                <div className="w-full border-t border-gray-300 pt-4 mt-auto">
+                <div className="w-full border-t-2 border-gray-300 pt-4 mt-auto">
                     <Link 
                         href="/logout" 
                         className="group flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-md font-general font-medium text-red-600 transition-all duration-200 hover:bg-red-50"

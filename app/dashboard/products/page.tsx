@@ -1,13 +1,13 @@
 import { createClient } from '@/utils/SupabaseServer'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import ProductActionMenu from '@/components/ProductActionMenu'
+import ProductActionMenu from '@/components/Products/ProductActionMenu'
 import {
   PackageIcon,
   PlusSignIcon,
 } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
-import ProductInfo from "@/components/ProductInfo"
+import ProductInfo from "@/components/Products/ProductInfo"
 
 // Helper to format currency
 const formatCurrency = (amount: number) => {
@@ -39,16 +39,11 @@ export default async function ProductsPage() {
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 space-y-8">
 
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="font-general text-2xl font-semibold text-black/80">Products</h1>
-            <p className="text-gray-400 text-sm font-grotesk font-medium">
-              Manage and track all your digital storefront assets
-            </p>
-          </div>
+        <div className="flex items-center justify-between">
+          <h1 className="font-general text-2xl font-semibold text-black/80">Products</h1>
           <Link
             href="/dashboard/products/new"
-            className="inline-flex items-center justify-center gap-2 bg-black text-white px-4 py-2 rounded-lg font-general font-medium text-sm hover:bg-zinc-800 transition-colors self-start sm:self-auto"
+            className="inline-flex items-center justify-center gap-2 bg-black text-white px-4 py-2 rounded-lg font-general font-medium text-sm hover:bg-zinc-800 transition-colors"
           >
             <HugeiconsIcon icon={PlusSignIcon} size={16} />
             Add product
@@ -60,18 +55,18 @@ export default async function ProductsPage() {
           {(!products || products.length === 0) ? (
             // EMPTY STATE
             <div className="text-center py-14 px-4">
-              <div className="mx-auto flex items-center justify-center mb-4 text-zinc-700">
-                <HugeiconsIcon icon={PackageIcon} size={50} />
+              <div className="mx-auto flex items-center justify-center mb-4 text-gray-500">
+                <HugeiconsIcon icon={PackageIcon} size={60} />
               </div>
-              <h3 className="font-general text-md font-medium text-gray-900 mb-1">
+              <h3 className="font-general text-md font-semibold text-gray-900 mb-1">
                 No products found
               </h3>
-              <p className="text-gray-400 text-sm font-grotesk font-medium mb-6 max-w-xs mx-auto">
+              <p className="text-gray-400 text-sm font-general font-medium mb-6 max-w-xs mx-auto">
                 You haven&apos;t uploaded any digital assets yet.
               </p>
               <Link
                 href="https://blogs.pdflovers.app/learn-how-to-upload-product"
-                className="font-medium text-sm text-blue-500/90"
+                className="font-medium text-sm text-blue-500/90 hover:underline"
               >
                 Learn how to upload product
               </Link>
@@ -97,11 +92,10 @@ export default async function ProductsPage() {
                           >
                             {product.title}
                           </Link>
-                          <span className={`text-xs font-general font-medium ${
-                            product.is_live
+                          <span className={`text-xs font-general font-medium ${product.is_live
                               ? 'text-green-600'
                               : 'text-amber-600'
-                          }`}>
+                            }`}>
                             {product.is_live ? 'Live' : 'Draft'}
                           </span>
                         </div>

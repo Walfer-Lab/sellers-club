@@ -347,7 +347,7 @@ function ProductInfoModal({ productIdProp, onCloseProp }) {
                       {Object.entries(parsedProperties).map(([key, value]) => (
                         <div
                           key={key}
-                          className="rounded-lg bg-zinc-200 border border-zinc-200 px-3 py-2 text-xs"
+                          className="rounded-lg bg-zinc-100 border border-zinc-200 px-3 py-2 text-xs"
                         >
                           <p className="text-blue-500 font-medium truncate">{key}</p>
                           <p className="text-zinc-900 font-semibold truncate mt-0.5">

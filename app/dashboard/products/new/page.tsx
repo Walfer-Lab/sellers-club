@@ -1,6 +1,6 @@
 import { createClient } from '@/utils/SupabaseServer'
 import { redirect } from 'next/navigation'
-import CreateProductForm from '@/components/CreateProductForm'
+import CreateProductForm from '@/components/Products/CreateProductForm'
 
 export default async function NewProductPage() {
   const supabase = createClient()
