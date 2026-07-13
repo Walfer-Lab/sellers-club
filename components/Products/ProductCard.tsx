@@ -85,25 +85,13 @@ export default function ProductCard({ productId }: ProductCardProps) {
                 return;
             }
 
-            // Find the seller record for the logged-in user
-            const { data: sellerData, error: sellerError } = await supabase
-                .from("sellers")
-                .select("id")
-                .eq("user_id", userData.user.id)
-                .single();
-
-            if (sellerError || !sellerData) {
-                setError("Seller account not found.");
-                setLoading(false);
-                return;
-            }
-
-            // Fetch product — must belong to this seller
+            // Fetch product — must belong to this seller. sellers.id IS the
+            // auth user id, so no separate lookup is needed.
             const { data, error: productError } = await supabase
                 .from("products")
                 .select("id, title, price, discount, is_live, created_at, image_urls, category, seller_id")
                 .eq("id", productId)
-                .eq("seller_id", sellerData.id)
+                .eq("seller_id", userData.user.id)
                 .single();
 
             if (productError || !data) {
