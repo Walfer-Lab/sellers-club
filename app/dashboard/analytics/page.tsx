@@ -1,14 +1,14 @@
 import type { Metadata } from 'next'
-import dynamic from 'next/dynamic'
 import { Suspense } from 'react'
 import { Last30DaysCard, TotalViewsCard, TotalProductsCard, TotalSalesCard } from '@/components/Analytics/AnalyticsStats'
+import AnalyticsChartWrapper from '@/components/Analytics/AnalyticsChartWrapper'
 
 export const metadata: Metadata = {
   title: 'Analytics | Sellers Club',
   description: 'Analyze your product performance, track sales trends, conversion rates, and traffic metrics over time.',
 }
 
-// ─── Lazy-load the heavy recharts bundle ──────────────────────────────────────
+// ─── Chart skeleton (server-renderable) ──────────────────────────────────────
 
 function ChartSkeleton() {
   return (
@@ -26,11 +26,6 @@ function ChartSkeleton() {
   )
 }
 
-const SellerAnalyticsChart = dynamic(
-  () => import('@/components/Analytics/SellerAnalyticsChart'),
-  { ssr: false, loading: () => <ChartSkeleton /> }
-)
-
 // ─── Page (Server Component) ──────────────────────────────────────────────────
 
 export default function AnalyticsPage() {
@@ -46,9 +41,9 @@ export default function AnalyticsPage() {
         <TotalSalesCard />
       </div>
 
-      {/* Chart — streamed in after initial paint */}
+      {/* Chart — lazy-loaded via client wrapper so recharts bundle is deferred */}
       <Suspense fallback={<ChartSkeleton />}>
-        <SellerAnalyticsChart />
+        <AnalyticsChartWrapper />
       </Suspense>
     </main>
   )

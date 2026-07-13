@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 }
 
 // Only load ProductInfo's JS bundle when the modal is actually opened
-const ProductInfo = nextDynamic(() => import('@/components/Products/ProductInfo'), { ssr: false })
+const ProductInfo = nextDynamic(() => import('@/components/Products/ProductInfo'))
 
 // Always fetch fresh product list
 export const dynamic = 'force-dynamic'
