@@ -1,6 +1,13 @@
+import type { Metadata } from 'next'
 import { createClient } from '@/utils/SupabaseServer'
 import { redirect } from 'next/navigation'
 import CreateProductForm from '@/components/Products/CreateProductForm'
+
+export const metadata: Metadata = {
+  title: 'Add New Product | Sellers Club',
+  description: 'Create and list a new digital product on Sellers Club with custom pricing and images.',
+}
+
 
 export default async function NewProductPage() {
   const supabase = createClient()

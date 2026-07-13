@@ -1,6 +1,13 @@
+import type { Metadata } from 'next'
 import { createClient } from '@/utils/SupabaseServer'
 import { redirect } from 'next/navigation'
 import EditProductForm from '@/components/Products/EditProductForm'
+
+export const metadata: Metadata = {
+  title: 'Edit Product | Sellers Club',
+  description: 'Update your product details, pricing, discount, and images on Sellers Club.',
+}
+
 
 export default async function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params

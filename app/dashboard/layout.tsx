@@ -1,4 +1,10 @@
+import type { Metadata } from "next";
 import Navbar from "@/components/CommonUI/Navbar";
+
+export const metadata: Metadata = {
+  title: "Dashboard | Sellers Club",
+  description: "View your sales performance, recent products, and quick actions on your Sellers Club dashboard.",
+};
 
 export default function DashboardLayout({
   children,

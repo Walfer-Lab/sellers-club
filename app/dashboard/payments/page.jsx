@@ -1,9 +1,13 @@
 "use client";
 import { useState } from "react";
-import AddPaymentMethod from "@/components/Payments/AddPaymentMethod";
-import {EarningsCard, Last30DaysCard, TotalSalesCard, ConversionRateCard} from "@/components/Analytics/AnalyticsStats";
-import WithdrawAmount from "@/components/Payments/WithdrawAmount";
+import dynamic from "next/dynamic";
+import { EarningsCard, Last30DaysCard, TotalSalesCard, ConversionRateCard } from "@/components/Analytics/AnalyticsStats";
 import PaymentsReceipt from "@/components/Payments/PaymentsReceipt";
+
+// Load modal bundles only when the user opens them
+const AddPaymentMethod = dynamic(() => import("@/components/Payments/AddPaymentMethod"), { ssr: false });
+const WithdrawAmount   = dynamic(() => import("@/components/Payments/WithdrawAmount"),   { ssr: false });
+
 
 const Page = ()=> {
     const [showAddPaymentMethod, setShowAddPaymentMethod] = useState(false)

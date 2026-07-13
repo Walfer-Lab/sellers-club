@@ -1,13 +1,22 @@
+import type { Metadata } from 'next'
+import nextDynamic from 'next/dynamic'
 import { createClient } from '@/utils/SupabaseServer'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import ProductActionMenu from '@/components/Products/ProductActionMenu'
-import {
-  PackageIcon,
-  PlusSignIcon,
-} from '@hugeicons/core-free-icons'
+import { PackageIcon, PlusSignIcon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
-import ProductInfo from "@/components/Products/ProductInfo"
+
+export const metadata: Metadata = {
+  title: 'Products | Sellers Club',
+  description: 'Manage all your digital products, update pricing, and toggle product live status on Sellers Club.',
+}
+
+// Only load ProductInfo's JS bundle when the modal is actually opened
+const ProductInfo = nextDynamic(() => import('@/components/Products/ProductInfo'), { ssr: false })
+
+// Always fetch fresh product list
+export const dynamic = 'force-dynamic'
 
 // Helper to format currency
 const formatCurrency = (amount: number) => {

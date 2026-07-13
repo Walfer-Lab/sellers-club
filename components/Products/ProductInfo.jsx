@@ -1,6 +1,7 @@
 'use client'
 
 import React, { Suspense, useEffect, useState } from 'react'
+import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/utils/SupabaseClient'
 import {
@@ -104,7 +105,7 @@ function ProductInfoModal({ productIdProp, onCloseProp }) {
         // 1. Fetch product details
         const { data: productData, error: productErr } = await supabase
           .from('products')
-          .select('*')
+          .select('id, title, price, is_live, views, image_urls, category, created_at, description, properties, file_type')
           .eq('id', activeProductId)
           .single()
 
@@ -260,15 +261,17 @@ function ProductInfoModal({ productIdProp, onCloseProp }) {
                 {/* Image thumbnail */}
                 <div className="rounded-xl overflow-hidden bg-zinc-200 border border-zinc-200 relative flex items-center justify-center h-44">
                   {showImage ? (
-                    <img
-                      key={firstImageUrl}
-                      src={firstImageUrl}
-                      alt={product.title}
-                      loading="lazy"
-                      decoding="async"
-                      onError={() => setImageFailed(true)}
-                      className="object-cover aspect-square"
-                    />
+                    <div className="relative w-full h-full">
+                      <Image
+                        key={firstImageUrl}
+                        src={firstImageUrl}
+                        alt={product.title}
+                        fill
+                        sizes="(max-width: 640px) 50vw, 256px"
+                        className="object-cover"
+                        onError={() => setImageFailed(true)}
+                      />
+                    </div>
                   ) : (
                     <div className="flex flex-col items-center justify-center text-zinc-600 gap-1 p-2 text-center">
                       <HugeiconsIcon
