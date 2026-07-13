@@ -36,11 +36,15 @@ export default async function ProductsPage() {
   }
 
   // 2. Fetch All Products for this Seller
-  const { data: products } = await supabase
+  const { data: products, error: productsError } = await supabase
     .from('products')
     .select('id, title, price, is_live, views, image_urls, created_at')
     .eq('seller_id', user.id)
     .order('created_at', { ascending: false })
+
+  if (productsError) {
+    console.error('Failed to load products:', productsError)
+  }
 
   return (
     <div className="font-general text-gray-900">

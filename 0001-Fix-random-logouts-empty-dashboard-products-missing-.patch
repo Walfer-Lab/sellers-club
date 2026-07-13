@@ -1,0 +1,260 @@
+From 1a4a96a8f08b5e30fbf94160b12da7a4f7a4ce08 Mon Sep 17 00:00:00 2001
+From: walferlab <walferlab@gmail.com>
+Date: Mon, 13 Jul 2026 06:21:14 +0000
+Subject: [PATCH] Fix random logouts, empty dashboard products, missing
+ onboarding gate, and broken seller stats
+
+- proxy.ts / SupabaseServer.ts: migrate deprecated get/set/remove cookie
+  methods to getAll/setAll (required by @supabase/ssr 0.12.x). The old
+  API doesn't reliably sync refreshed session cookies back to the
+  browser, causing random logouts on navigation.
+- dashboard/page.tsx: RecentProducts queried sellers.user_id, a column
+  that doesn't exist (sellers.id IS the auth user id). Also wired real
+  values into TotalProductsCard/TotalSalesCard/TotalViewsCard/
+  Last30DaysCard, which were previously rendered with no data at all.
+- dashboard/products/page.tsx: surface query errors instead of
+  silently falling into the empty state.
+- proxy.ts: gate /dashboard behind onboarding completion so new
+  sellers land on /dashboard/onboarding instead of skipping it.
+- DB: seller_metrics materialized view had zero grants (unreadable by
+  any client role) and had never been refreshed since creation
+  (always empty). Renamed it to seller_metrics_mv, wrapped it in a
+  security_invoker view (seller_metrics) scoped to auth.uid() so
+  sellers can only see their own row, granted SELECT to authenticated,
+  did the required initial refresh, and added a trigger to refresh on
+  product changes as well as sales.
+---
+ app/dashboard/page.tsx          | 40 +++++++++++++-------
+ app/dashboard/products/page.tsx |  6 ++-
+ proxy.ts                        | 67 ++++++++++++++++++---------------
+ utils/SupabaseServer.ts         | 25 ++++++------
+ 4 files changed, 79 insertions(+), 59 deletions(-)
+
+diff --git a/app/dashboard/page.tsx b/app/dashboard/page.tsx
+index 3bdcbcd..2ea92fc 100644
+--- a/app/dashboard/page.tsx
++++ b/app/dashboard/page.tsx
+@@ -19,18 +19,11 @@ function RecentProducts() {
+             const { data: userData } = await supabase.auth.getUser();
+             if (!userData.user) { setLoading(false); return; }
+ 
+-            const { data: sellerData } = await supabase
+-                .from("sellers")
+-                .select("id")
+-                .eq("user_id", userData.user.id)
+-                .single();
+-
+-            if (!sellerData) { setLoading(false); return; }
+-
++            // sellers.id IS the auth user id — no separate lookup needed
+             const { data: products } = await supabase
+                 .from("products")
+                 .select("id")
+-                .eq("seller_id", sellerData.id)
++                .eq("seller_id", userData.user.id)
+                 .order("created_at", { ascending: false })
+                 .limit(5);
+ 
+@@ -81,15 +74,36 @@ function RecentProducts() {
+ // ─── Page ─────────────────────────────────────────────────────────────────────
+ 
+ const Page = () => {
++    const [sellerId, setSellerId] = useState("");
++    const [metrics, setMetrics] = useState({ total_products: 0, total_sales_count: 0, total_views: 0 });
++
++    useEffect(() => {
++        async function fetchMetrics() {
++            const supabase = createClient();
++            const { data: userData } = await supabase.auth.getUser();
++            if (!userData.user) return;
++            setSellerId(userData.user.id);
++
++            const { data } = await supabase
++                .from("seller_metrics")
++                .select("total_products, total_sales_count, total_views")
++                .eq("seller_id", userData.user.id)
++                .single();
++
++            if (data) setMetrics(data);
++        }
++        fetchMetrics();
++    }, []);
++
+     return (
+         <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-5">
+             <p className="text-2xl text-black/80 font-general font-semibold">Dashboard</p>
+ 
+             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+-                <Last30DaysCard />
+-                <TotalProductsCard />
+-                <TotalSalesCard />
+-                <TotalViewsCard />
++                <Last30DaysCard sellerId={sellerId} />
++                <TotalProductsCard value={metrics.total_products} />
++                <TotalSalesCard value={metrics.total_sales_count} />
++                <TotalViewsCard value={metrics.total_views} />
+             </div>
+ 
+             <p className="text-lg text-black/80 font-general font-semibold">Recent Products</p>
+diff --git a/app/dashboard/products/page.tsx b/app/dashboard/products/page.tsx
+index 331ded1..c3c3c33 100644
+--- a/app/dashboard/products/page.tsx
++++ b/app/dashboard/products/page.tsx
+@@ -36,12 +36,16 @@ export default async function ProductsPage() {
+   }
+ 
+   // 2. Fetch All Products for this Seller
+-  const { data: products } = await supabase
++  const { data: products, error: productsError } = await supabase
+     .from('products')
+     .select('id, title, price, is_live, views, image_urls, created_at')
+     .eq('seller_id', user.id)
+     .order('created_at', { ascending: false })
+ 
++  if (productsError) {
++    console.error('Failed to load products:', productsError)
++  }
++
+   return (
+     <div className="font-general text-gray-900">
+       <ProductInfo />
+diff --git a/proxy.ts b/proxy.ts
+index 01d7dba..6604d85 100644
+--- a/proxy.ts
++++ b/proxy.ts
+@@ -1,4 +1,4 @@
+-import { createServerClient, type CookieOptions } from '@supabase/ssr'
++import { createServerClient } from '@supabase/ssr'
+ import { NextResponse, type NextRequest } from 'next/server'
+ 
+ export async function proxy(request: NextRequest) {
+@@ -13,42 +13,19 @@ export async function proxy(request: NextRequest) {
+     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+     {
+       cookies: {
+-        get(name: string) {
+-          return request.cookies.get(name)?.value
++        getAll() {
++          return request.cookies.getAll()
+         },
+-        set(name: string, value: string, options: CookieOptions) {
+-          request.cookies.set({
+-            name,
+-            value,
+-            ...options,
+-          })
+-          response = NextResponse.next({
+-            request: {
+-              headers: request.headers,
+-            },
+-          })
+-          response.cookies.set({
+-            name,
+-            value,
+-            ...options,
+-          })
+-        },
+-        remove(name: string, options: CookieOptions) {
+-          request.cookies.set({
+-            name,
+-            value: '',
+-            ...options,
+-          })
++        setAll(cookiesToSet) {
++          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+           response = NextResponse.next({
+             request: {
+               headers: request.headers,
+             },
+           })
+-          response.cookies.set({
+-            name,
+-            value: '',
+-            ...options,
+-          })
++          cookiesToSet.forEach(({ name, value, options }) =>
++            response.cookies.set(name, value, options)
++          )
+         },
+       },
+     }
+@@ -70,6 +47,34 @@ export async function proxy(request: NextRequest) {
+     return NextResponse.redirect(url)
+   }
+ 
++  // Gate the rest of /dashboard behind onboarding completion. The
++  // handle_new_user() trigger creates a bare `sellers` row (name = null)
++  // on signup; onboarding fills in the name, so "name is null" means
++  // onboarding hasn't been completed yet.
++  if (user && request.nextUrl.pathname.startsWith('/dashboard')) {
++    const onOnboardingPage = request.nextUrl.pathname === '/dashboard/onboarding'
++
++    const { data: seller } = await supabase
++      .from('sellers')
++      .select('name')
++      .eq('id', user.id)
++      .maybeSingle()
++
++    const needsOnboarding = !seller?.name
++
++    if (needsOnboarding && !onOnboardingPage) {
++      const url = request.nextUrl.clone()
++      url.pathname = '/dashboard/onboarding'
++      return NextResponse.redirect(url)
++    }
++
++    if (!needsOnboarding && onOnboardingPage) {
++      const url = request.nextUrl.clone()
++      url.pathname = '/dashboard'
++      return NextResponse.redirect(url)
++    }
++  }
++
+   return response
+ }
+ 
+diff --git a/utils/SupabaseServer.ts b/utils/SupabaseServer.ts
+index 13e867b..4cd5be6 100644
+--- a/utils/SupabaseServer.ts
++++ b/utils/SupabaseServer.ts
+@@ -1,4 +1,4 @@
+-import { createServerClient, type CookieOptions } from '@supabase/ssr'
++import { createServerClient } from '@supabase/ssr'
+ import { cookies } from 'next/headers'
+ 
+ export function createClient() {
+@@ -9,21 +9,18 @@ export function createClient() {
+     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+     {
+       cookies: {
+-        async get(name: string) {
+-          return (await cookieStore).get(name)?.value
++        async getAll() {
++          return (await cookieStore).getAll()
+         },
+-        async set(name: string, value: string, options: CookieOptions) {
++        async setAll(cookiesToSet) {
+           try {
+-            (await cookieStore).set({ name, value, ...options })
+-          } catch (error) {
+-            // Handled by middleware
+-          }
+-        },
+-        async remove(name: string, options: CookieOptions) {
+-          try {
+-            (await cookieStore).set({ name, value: '', ...options })
+-          } catch (error) {
+-            // Handled by middleware
++            const store = await cookieStore
++            cookiesToSet.forEach(({ name, value, options }) =>
++              store.set(name, value, options)
++            )
++          } catch {
++            // Called from a Server Component — safe to ignore since
++            // proxy.ts refreshes the session on every request.
+           }
+         },
+       },
+-- 
+2.43.0
+

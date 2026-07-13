@@ -19,18 +19,11 @@ function RecentProducts() {
             const { data: userData } = await supabase.auth.getUser();
             if (!userData.user) { setLoading(false); return; }
 
-            const { data: sellerData } = await supabase
-                .from("sellers")
-                .select("id")
-                .eq("user_id", userData.user.id)
-                .single();
-
-            if (!sellerData) { setLoading(false); return; }
-
+            // sellers.id IS the auth user id — no separate lookup needed
             const { data: products } = await supabase
                 .from("products")
                 .select("id")
-                .eq("seller_id", sellerData.id)
+                .eq("seller_id", userData.user.id)
                 .order("created_at", { ascending: false })
                 .limit(5);
 
@@ -81,15 +74,36 @@ function RecentProducts() {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 const Page = () => {
+    const [sellerId, setSellerId] = useState("");
+    const [metrics, setMetrics] = useState({ total_products: 0, total_sales_count: 0, total_views: 0 });
+
+    useEffect(() => {
+        async function fetchMetrics() {
+            const supabase = createClient();
+            const { data: userData } = await supabase.auth.getUser();
+            if (!userData.user) return;
+            setSellerId(userData.user.id);
+
+            const { data } = await supabase
+                .from("seller_metrics")
+                .select("total_products, total_sales_count, total_views")
+                .eq("seller_id", userData.user.id)
+                .single();
+
+            if (data) setMetrics(data);
+        }
+        fetchMetrics();
+    }, []);
+
     return (
         <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-5">
             <p className="text-2xl text-black/80 font-general font-semibold">Dashboard</p>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Last30DaysCard />
-                <TotalProductsCard />
-                <TotalSalesCard />
-                <TotalViewsCard />
+                <Last30DaysCard sellerId={sellerId} />
+                <TotalProductsCard value={metrics.total_products} />
+                <TotalSalesCard value={metrics.total_sales_count} />
+                <TotalViewsCard value={metrics.total_views} />
             </div>
 
             <p className="text-lg text-black/80 font-general font-semibold">Recent Products</p>

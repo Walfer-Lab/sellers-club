@@ -1,4 +1,4 @@
-import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function proxy(request: NextRequest) {
@@ -13,42 +13,19 @@ export async function proxy(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return request.cookies.get(name)?.value
+        getAll() {
+          return request.cookies.getAll()
         },
-        set(name: string, value: string, options: CookieOptions) {
-          request.cookies.set({
-            name,
-            value,
-            ...options,
-          })
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
           response = NextResponse.next({
             request: {
               headers: request.headers,
             },
           })
-          response.cookies.set({
-            name,
-            value,
-            ...options,
-          })
-        },
-        remove(name: string, options: CookieOptions) {
-          request.cookies.set({
-            name,
-            value: '',
-            ...options,
-          })
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          })
-          response.cookies.set({
-            name,
-            value: '',
-            ...options,
-          })
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          )
         },
       },
     }
@@ -68,6 +45,34 @@ export async function proxy(request: NextRequest) {
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'
     return NextResponse.redirect(url)
+  }
+
+  // Gate the rest of /dashboard behind onboarding completion. The
+  // handle_new_user() trigger creates a bare `sellers` row (name = null)
+  // on signup; onboarding fills in the name, so "name is null" means
+  // onboarding hasn't been completed yet.
+  if (user && request.nextUrl.pathname.startsWith('/dashboard')) {
+    const onOnboardingPage = request.nextUrl.pathname === '/dashboard/onboarding'
+
+    const { data: seller } = await supabase
+      .from('sellers')
+      .select('name')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    const needsOnboarding = !seller?.name
+
+    if (needsOnboarding && !onOnboardingPage) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/dashboard/onboarding'
+      return NextResponse.redirect(url)
+    }
+
+    if (!needsOnboarding && onOnboardingPage) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/dashboard'
+      return NextResponse.redirect(url)
+    }
   }
 
   return response

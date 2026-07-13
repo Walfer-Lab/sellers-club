@@ -1,4 +1,4 @@
-import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
 export function createClient() {
@@ -9,21 +9,18 @@ export function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        async get(name: string) {
-          return (await cookieStore).get(name)?.value
+        async getAll() {
+          return (await cookieStore).getAll()
         },
-        async set(name: string, value: string, options: CookieOptions) {
+        async setAll(cookiesToSet) {
           try {
-            (await cookieStore).set({ name, value, ...options })
-          } catch (error) {
-            // Handled by middleware
-          }
-        },
-        async remove(name: string, options: CookieOptions) {
-          try {
-            (await cookieStore).set({ name, value: '', ...options })
-          } catch (error) {
-            // Handled by middleware
+            const store = await cookieStore
+            cookiesToSet.forEach(({ name, value, options }) =>
+              store.set(name, value, options)
+            )
+          } catch {
+            // Called from a Server Component — safe to ignore since
+            // proxy.ts refreshes the session on every request.
           }
         },
       },
